@@ -1,0 +1,69 @@
+USE diabetes;
+
+CREATE VIEW smokingAgeDiabetesType AS
+SELECT p.PatientID, p.Age, dt.Type AS 'Diabetes Type'
+FROM patients p
+JOIN habits h
+	ON p.HabitsID = h.HabitsID
+JOIN `diabetes type` dt
+	ON p.DiabetesID = dt.DiabetesID
+WHERE h.`Smoking Status` = 'Smoker'
+ORDER BY AGE;
+
+CREATE VIEW typeAvgLevels AS
+SELECT dt.Type AS 'Diabetes Type', ROUND(AVG(p.BMI),2) AS 'Avg BMI',
+	ROUND(AVG(l.CholesterolLevel),2) AS 'Avg Cholesterol Level', 
+    ROUND(AVG(l.InsulinLevel),2) AS 'Avg Insulin Level',
+    ROUND(AVG(l.BloodGluLevel),2) AS 'Avg Blood Glucose Level',
+    ROUND(AVG(l.BloodPress),2) AS 'Avg Blood Pressure Level'
+FROM `diabetes type` dt
+JOIN patients p
+	ON p.DiabetesID = dt.DiabetesID
+JOIN level l
+	ON p.LevelsID = l.LevelsID
+GROUP BY dt.Type
+ORDER BY ROUND(AVG(p.BMI),2), dt.Type;
+
+CREATE VIEW aboveAvgBloodGluLevel AS
+SELECT p.PatientID, e.SocioStatus AS 'Socioeconomic Status', 
+l.BloodGluLevel AS 'Blood Glucose Level',
+    dt.Type AS 'Diabetes Type'
+FROM patients p
+JOIN `external` e 
+	ON p.ExternalID = e.ExternalID
+JOIN `level` l 
+	ON p.LevelsID = l.LevelsID
+JOIN `diabetes type` dt 
+	ON p.DiabetesID = dt.DiabetesID
+WHERE l.BloodGluLevel > (
+    SELECT AVG(l2.BloodGluLevel)
+    FROM patients p2
+    JOIN external e2 
+		ON p2.ExternalID = e2.ExternalID
+    JOIN level l2 
+		ON p2.LevelsID = l2.LevelsID
+    WHERE e2.SocioStatus = e.SocioStatus)
+ORDER BY e.SocioStatus, l.BloodGluLevel;
+
+CREATE VIEW highCholesterol AS
+SELECT p.PatientID, p.Age, l.CholesterolLevel AS 'Cholesterol Level',
+	dt.Type AS 'Diabetes Type'
+FROM patients p
+JOIN level l
+    ON p.LevelsID = l.LevelsID
+JOIN `diabetes type` dt
+    ON p.DiabetesID = dt.DiabetesID
+WHERE p.Age > 50 AND l.CholesterolLevel > 200
+ORDER BY p.Age DESC;
+
+CREATE VIEW elevatedBloodGluLevel AS
+SELECT p.PatientID, p.Age,
+    t.`Glucose Tolerance Test` AS 'Glucose Tolerance Test',
+    l.BloodGluLevel AS 'Blood Glucose Level'
+FROM patients p
+JOIN level l 
+    ON p.LevelsID = l.LevelsID
+JOIN test t 
+    ON l.TestID = t.TestID
+WHERE l.BloodGluLevel > 140
+ORDER BY l.BloodGluLevel DESC;
